@@ -5,9 +5,12 @@
 #include <conio.h>
 #include <windows.h> // For Sleep()
 
+
 // Define constants
 #define MAX_PRODUCTS 100
 #define FILE_NAME "products.txt"
+#define CREDENTIALS_FILE "admin_credentials.txt" // File for storing admin credentials
+
 
 // Define structure
 struct item
@@ -19,8 +22,10 @@ struct item
     int price;
     int Qnt; // Quantity
     float a;
-    char b[200]; // Additional info or description
+    char b[200];   // Additional info or description
+    char unit[20]; // Unit of measurement (e.g., kg, liter, box)
 };
+
 
 // Function declarations
 void wel_come(void);
@@ -35,6 +40,11 @@ void searchProduct();
 void purchaseProduct();
 void saveProducts(struct item products[], int count);
 int loadProducts(struct item products[]);
+void saveCredentials(const char *username, const char *password);
+char *loadCredentials(char *username, char *password);
+void changePassword(const char *username);
+void changeUsername(const char *oldUsername);
+
 
 // Welcome function
 void wel_come(void)
@@ -66,6 +76,7 @@ void wel_come(void)
     printf("\n");
     printf("\n");
 
+
     printf("Current Time : %s", ctime(&t));
     for (i = 0; i < 40; i++)
     {
@@ -74,43 +85,51 @@ void wel_come(void)
     }
     printf("\n");
     printf("\n");
-
-    // printf("\nPress any key to continue....\n");
-
-    // getch();
-    // system("cls");
+    printf("\nPress any key to continue....\n");
+    getch();
+    system("cls");
 }
+
 
 // Login function
 void login(void)
 {
     system("cls");
-    int a = 0, i = 0;
-    char uname[10], c = ' ';
-    char pword[10];
-    do
+    char uname[50], pword[50];
 
+
+    // Load saved credentials
+    loadCredentials(uname, pword);
+
+
+    int attempts = 0;
+    char inputUsername[50], inputPassword[50];
+
+
+    do
     {
         printf("\n");
-        printf("**********  ADMIN LOGIN  **********\n");
+        printf("****  ADMIN LOGIN  ****\n");
         printf("\n");
         printf(" \nUSERNAME: ");
-        scanf("%s", uname);
+        scanf("%s", inputUsername);
         printf(" \nPASSWORD: ");
-        while (i < 10)
+        int i = 0;
+        char c = ' ';
+        while (i < 50)
         {
-            pword[i] = getch();
-            c = pword[i];
-            if (c == 13)
-                break; // Enter key pressed
+            inputPassword[i] = getch();
+            c = inputPassword[i];
+            if (c == 13) // Enter key pressed
+                break;
             else
                 printf("*");
             i++;
         }
-        pword[i] = '\0';
-        i = 0;
+        inputPassword[i] = '\0';
 
-        if (strcmp(uname, "ramim") == 0 && strcmp(pword, "17662") == 0)
+
+        if (strcmp(inputUsername, uname) == 0 && strcmp(inputPassword, pword) == 0)
         {
             printf("  \n\nYAH!!! LOGIN IS SUCCESSFUL\n");
             for (i = 0; i < 25; i++)
@@ -118,7 +137,7 @@ void login(void)
                 printf(".");
                 Sleep(70);
             }
-            printf("\n\nHEY USER (*_*). PLEASE WAIT... \n");
+            printf("\n\nHEY USER (_). PLEASE WAIT... \n");
             for (i = 0; i < 30; i++)
             {
                 printf(".");
@@ -132,12 +151,13 @@ void login(void)
         else
         {
             printf("\n  SORRY!!!!  LOGIN IS UNSUCCESSFUL\n");
-            a++;
+            attempts++;
             getch();
         }
-    } while (a <= 2);
+    } while (attempts < 3);
 
-    if (a > 2)
+
+    if (attempts >= 3)
     {
         printf("\nSorry you have entered the wrong username and password three times!!!");
         getch();
@@ -145,27 +165,188 @@ void login(void)
     }
 }
 
+
+// Save admin credentials
+void saveCredentials(const char *username, const char *password)
+{
+    FILE *fp = fopen(CREDENTIALS_FILE, "w");
+    if (fp)
+    {
+        fprintf(fp, "%s\n%s\n", username, password);
+        fclose(fp);
+    }
+    else
+    {
+        perror("Error saving credentials");
+    }
+}
+
+
+// Load admin credentials
+char *loadCredentials(char *username, char *password)
+{
+    FILE *fp = fopen(CREDENTIALS_FILE, "r");
+    if (fp)
+    {
+        fgets(username, 50, fp);
+        fgets(password, 50, fp);
+        username[strcspn(username, "\n")] = 0; // Remove newline
+        password[strcspn(password, "\n")] = 0; // Remove newline
+        fclose(fp);
+        return username; // Returns the username for informational purpose
+    }
+    else
+    {
+        // If the credentials file does not exist, ask for new credentials
+        printf("Admin credentials not found! Please create new ones.\n");
+        char newUsername[50], newPassword[50];
+        printf("Enter new username: ");
+        scanf("%s", newUsername);
+        printf("Enter new password: ");
+        int i = 0;
+        char c = ' ';
+        while (i < 50)
+        {
+            newPassword[i] = getch();
+            c = newPassword[i];
+            if (c == 13) // Enter key pressed
+                break;
+            else
+                printf("*");
+            i++;
+        }
+        newPassword[i] = '\0';
+
+
+        // Save new credentials
+        saveCredentials(newUsername, newPassword);
+        strcpy(username, newUsername);
+        strcpy(password, newPassword);
+        return username; // Returns the username
+    }
+}
+
+
+// Change admin password
+void changePassword(const char *username)
+{
+    char currentPassword[50], newPassword[50];
+    printf("Enter current password: ");
+    int i = 0;
+    char c = ' ';
+    while (i < 50)
+    {
+        currentPassword[i] = getch();
+        c = currentPassword[i];
+        if (c == 13) // Enter key pressed
+            break;
+        else
+            printf("*");
+        i++;
+    }
+    currentPassword[i] = '\0';
+
+
+    char storedCredentials[50], storedPassword[50];
+    loadCredentials(storedCredentials, storedPassword);
+
+
+    if (strcmp(currentPassword, storedPassword) == 0)
+    {
+        printf("\nEnter new password: ");
+        i = 0;
+        while (i < 50)
+        {
+            newPassword[i] = getch();
+            c = newPassword[i];
+            if (c == 13) // Enter key pressed
+                break;
+            else
+                printf("*");
+            i++;
+        }
+        newPassword[i] = '\0';
+
+
+        // Save the new credentials
+        saveCredentials(username, newPassword);
+        printf("\nPassword changed successfully!\n");
+    }
+    else
+    {
+        printf("\nCurrent password is incorrect!\n");
+    }
+}
+
+
+// Change admin username
+void changeUsername(const char *oldUsername)
+{
+    char currentPassword[50], newUsername[50];
+    printf("Enter current password: ");
+    int i = 0;
+    char c = ' ';
+    while (i < 50)
+    {
+        currentPassword[i] = getch();
+        c = currentPassword[i];
+        if (c == 13) // Enter key pressed
+            break;
+        else
+            printf("*");
+        i++;
+    }
+    currentPassword[i] = '\0';
+
+
+    char storedCredentials[50], storedPassword[50];
+    loadCredentials(storedCredentials, storedPassword);
+
+
+    if (strcmp(currentPassword, storedPassword) == 0)
+    {
+        printf("\nEnter new username: ");
+        scanf("%s", newUsername);
+
+
+        // Save the new credentials
+        saveCredentials(newUsername, storedPassword); // Keep the old password
+        printf("\nUsername changed successfully!\n");
+    }
+    else
+    {
+        printf("\nCurrent password is incorrect!\n");
+    }
+}
+
+
 // Admin Menu function
 void adminMenu(void)
 {
     // Require login before accessing the admin menu
     login();
 
+
     int choice;
     do
     {
         system("cls");
-        printf("\n ****** Daffodil General Store - Admin Menu ****** \n");
+        printf("\n ** Daffodil General Store - Admin Menu ** \n");
         printf("\n\t1. Add Product\n");
         printf("\t2. View Products\n");
         printf("\t3. Update Product\n");
         printf("\t4. Delete Product\n");
-        printf("\t5. Back to Main Menu\n");
+        printf("\t5. Change Password\n");
+        printf("\t6. Change Username\n");
+        printf("\t7. Back to Main Menu\n");
 
-        printf("\n\n\tEnter your choice [1-5]: ");
+
+        printf("\n\n\tEnter your choice [1-7]: ");
         scanf("%d", &choice);
 
+
         system("cls");
+
 
         switch (choice)
         {
@@ -184,21 +365,28 @@ void adminMenu(void)
             deleteProduct();
             break;
         case 5:
+            changePassword("admin"); // Assuming "admin" is the username for the logged-in admin
+            break;
+        case 6:
+            changeUsername("admin"); // Change username
+            break;
+        case 7:
             printf("Returning to Main Menu...\n");
             Sleep(1000); // Pause for a moment before returning
             return;      // Exit admin menu
         default:
-            printf("Invalid Choice! Please enter a number between 1 and 5.\n");
+            printf("Invalid Choice! Please enter a number between 1 and 7.\n");
             Sleep(1000); // Pause to display error before clearing screen
         }
     } while (1);
 }
 
+
 // Main function
 int main()
 {
-
     wel_come(); // Call the welcome screen function
+
 
     int choice;
     do
@@ -228,6 +416,8 @@ int main()
     } while (choice != 3);
     return 0;
 }
+
+
 void customerMenu()
 {
     int choice;
@@ -264,17 +454,20 @@ void customerMenu()
     } while (choice != 4);
 }
 
+
 // Add a new product
 void addProduct()
 {
     struct item products[MAX_PRODUCTS];
     int count = loadProducts(products);
 
+
     if (count >= MAX_PRODUCTS)
     {
         printf("Error: Maximum product limit reached.\n");
         return;
     }
+
 
     struct item newProduct;
     printf("Enter product ID: ");
@@ -291,20 +484,26 @@ void addProduct()
     printf("Enter product quantity: ");
     scanf("%d", &newProduct.Qnt);
     getchar();
+    printf("Enter unit of measurement (e.g., kg, liter, box): ");
+    fgets(newProduct.unit, sizeof(newProduct.unit), stdin);
+    newProduct.unit[strcspn(newProduct.unit, "\n")] = '\0';
     printf("Enter additional description: ");
     fgets(newProduct.b, sizeof(newProduct.b), stdin);
     newProduct.b[strcspn(newProduct.b, "\n")] = '\0';
+
 
     products[count++] = newProduct;
     saveProducts(products, count);
     printf("Product added successfully!\n");
 }
 
+
 // View all products
 void viewProducts()
 {
     struct item products[MAX_PRODUCTS];
     int count = loadProducts(products);
+
 
     if (count == 0)
     {
@@ -313,18 +512,22 @@ void viewProducts()
         return;
     }
 
+
     printf("\n--- Product List ---\n");
-    printf("-------------------------------------------------\n");
-    printf("NO.\tName\t\tCompany\t\tPrice\tQuantity\tID\n");
-    printf("-------------------------------------------------\n");
+    printf("---------------------------------------------------------------\n");
+    printf("NO.\tName\t\tCompany\t\tPrice\tQuantity\tUnit\tID\n");
+    printf("---------------------------------------------------------------\n");
+
 
     for (int i = 0; i < count; i++)
     {
-        printf("%02d.\t%-15s\t%-15s\t%d\t%d\t\t%d\n", i + 1, products[i].productname, products[i].productcomp,
-               products[i].price, products[i].Qnt, products[i].productid);
+        printf("%02d.\t%-15s\t%-15s\t%d\t%d\t\t%-5s\t%d\n",
+               i + 1, products[i].productname, products[i].productcomp,
+               products[i].price, products[i].Qnt, products[i].unit, products[i].productid);
         getchar();
     }
 }
+
 
 // Update a product
 void updateProduct()
@@ -332,9 +535,11 @@ void updateProduct()
     struct item products[MAX_PRODUCTS];
     int count = loadProducts(products);
 
+
     int id, found = 0;
     printf("Enter the product ID to update: ");
     scanf("%d", &id);
+
 
     for (int i = 0; i < count; i++)
     {
@@ -353,9 +558,13 @@ void updateProduct()
             printf("Enter new quantity: ");
             scanf("%d", &products[i].Qnt);
             getchar();
+            printf("Enter new unit of measurement: ");
+            fgets(products[i].unit, sizeof(products[i].unit), stdin);
+            products[i].unit[strcspn(products[i].unit, "\n")] = '\0';
             printf("Enter new description: ");
             fgets(products[i].b, sizeof(products[i].b), stdin);
             products[i].b[strcspn(products[i].b, "\n")] = '\0';
+
 
             saveProducts(products, count);
             printf("Product updated successfully!\n");
@@ -363,11 +572,13 @@ void updateProduct()
         }
     }
 
+
     if (!found)
     {
         printf("Product not found.\n");
     }
 }
+
 
 // Delete a product
 void deleteProduct()
@@ -375,6 +586,7 @@ void deleteProduct()
     viewProducts();
     struct item products[MAX_PRODUCTS];
     int count = loadProducts(products);
+
 
     int opt, found = 0;
     printf("Enter option to delete: ");
@@ -387,6 +599,7 @@ void deleteProduct()
         return;
     }
 
+
     for (int j = opt - 1; j < count - 1; j++)
     {
         products[j] = products[j + 1];
@@ -397,17 +610,20 @@ void deleteProduct()
     getchar();
 }
 
+
 // Search for a product
 void searchProduct()
 {
     struct item products[MAX_PRODUCTS];
     int count = loadProducts(products);
 
+
     char query[40];
     printf("Enter product name to search: ");
     getchar();
     fgets(query, sizeof(query), stdin);
     query[strcspn(query, "\n")] = '\0';
+
 
     printf("\n--- Search Results ---\n");
     int found = 0;
@@ -420,8 +636,10 @@ void searchProduct()
                    products[i].productid, products[i].productname, products[i].productcomp,
                    products[i].price, products[i].Qnt, products[i].b);
             getchar();
+            getchar();
         }
     }
+
 
     if (!found)
     {
@@ -430,26 +648,33 @@ void searchProduct()
     }
 }
 
+
 void purchaseProduct()
 {
     struct item products[MAX_PRODUCTS];
-    int count = loadProducts(products); // Load product data into the array
+    int count = loadProducts(products);
 
-    if (count == 0) {
+
+    if (count == 0)
+    {
         printf("No products available for purchase.\n");
         printf("Press any key to continue...");
         getchar();
         return;
     }
 
-    viewProducts(products, count); // Display all available products
+
+    viewProducts(); // Display all available products
+
 
     int opt, qty;
     float totalCost = 0.0;
     printf("\nEnter the option to purchase: ");
     scanf("%d", &opt);
 
-    if (opt <= 0 || opt > count) {
+
+    if (opt <= 0 || opt > count)
+    {
         printf("Invalid option.\n");
         printf("Press any key to continue...");
         getchar();
@@ -457,10 +682,13 @@ void purchaseProduct()
         return;
     }
 
-    printf("Enter quantity to purchase: ");
+
+    printf("Enter quantity to purchase (in %s): ", products[opt - 1].unit);
     scanf("%d", &qty);
 
-    if (qty > products[opt - 1].Qnt) {
+
+    if (qty > products[opt - 1].Qnt)
+    {
         printf("Not enough stock available.\n");
         printf("Press any key to continue...");
         getchar();
@@ -468,32 +696,37 @@ void purchaseProduct()
         return;
     }
 
-    // Calculate total cost and update stock
+
     totalCost = qty * products[opt - 1].price;
     products[opt - 1].Qnt -= qty;
-    printf("Purchase added to cart. Total cost: %.2f taka\n", totalCost);
+    printf("Purchase added to cart. Total cost: %.2f\n taka", totalCost);
 
-    // Proceed to payment
+
     printf("\n--- Payment Process ---\n");
     float paymentAmount;
 
-    while (1) {
+
+    while (1)
+    {
         printf("Total Amount Due: %.2f\n taka", totalCost);
         printf("Enter Payment Amount: ");
         scanf("%f", &paymentAmount);
 
-        if (paymentAmount < totalCost) {
-            printf("Insufficient payment! Please enter at least taka%.2f.\n", totalCost);
-        } else {
-            printf("\nPayment successful! Change: taka%.2f\n", paymentAmount - totalCost);
+
+        if (paymentAmount < totalCost)
+        {
+            printf("Insufficient payment! Please enter at least %.2f.\n", totalCost);
+        }
+        else
+        {
+            printf("\nPayment successful! Change: %.2f\n taka", paymentAmount - totalCost);
             break;
         }
     }
 
-    // Save the updated product data back to the file
+
     saveProducts(products, count);
     printf("\nThank you for your purchase!\n");
-
     printf("\nPress any key to continue...");
     getchar();
     getchar();
@@ -510,9 +743,11 @@ void saveProducts(struct item products[], int count)
         return;
     }
 
+
     fwrite(products, sizeof(struct item), count, fp);
     fclose(fp);
 }
+
 
 // Load products from file
 int loadProducts(struct item products[])
@@ -523,9 +758,8 @@ int loadProducts(struct item products[])
         return 0; // No products saved yet
     }
 
+
     int count = fread(products, sizeof(struct item), MAX_PRODUCTS, fp);
     fclose(fp);
     return count;
 }
-
-
